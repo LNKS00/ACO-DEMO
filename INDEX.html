@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facturas OCR — Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1b2a;--bg2:#112233;--bg3:#1a2e42;--border:#1e3a50;
+  --teal:#00b4d8;--teal2:#0096b4;--green:#22c55e;--orange:#f59e0b;
+  --red:#ef4444;--purple:#a78bfa;--text:#e2e8f0;--muted:#64748b;
+  --card:#0f2233;--card2:#142a3f;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* DEMO BANNER */
+.demo-banner{background:linear-gradient(90deg,#f59e0b,#ef4444);color:#fff;text-align:center;padding:6px;font-weight:700;font-size:12px;letter-spacing:1px;position:sticky;top:0;z-index:1000}
+
+/* NAVBAR */
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:16px;position:sticky;top:28px;z-index:100}
+.logo{font-weight:700;color:var(--teal);font-size:15px;padding:10px 0;white-space:nowrap}
+.logo span{color:var(--text);font-size:11px;margin-left:6px;opacity:.6}
+.tabs{display:flex;gap:2px;flex:1;overflow-x:auto}
+.tab{padding:12px 12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;font-size:13px;transition:all .2s;background:none;border-top:0;border-left:0;border-right:0;user-select:none}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab-icon{margin-right:5px}
+.nav-right{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px}
+.sync-info{font-size:11px;color:var(--muted)}
+.btn{padding:6px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:opacity .2s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--teal);color:#fff}
+.btn-success{background:var(--green);color:#fff}
+.btn-warning{background:var(--orange);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-outline{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+
+/* PANELS */
+.panel{display:none;padding:16px}
+.panel.active{display:block}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:120px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-card.teal .stat-val{color:var(--teal)}
+.stat-card.green .stat-val{color:var(--green)}
+.stat-card.orange .stat-val{color:var(--orange)}
+.stat-card.red .stat-val{color:var(--red)}
+.stat-card.purple .stat-val{color:var(--purple)}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;color:var(--muted);cursor:pointer;transition:all .3s;margin-bottom:16px}
+.upload-zone:hover{border-color:var(--teal);color:var(--teal)}
+.upload-icon{font-size:40px;margin-bottom:12px}
+.upload-title{font-size:16px;font-weight:600;margin-bottom:6px}
+
+/* DIVIDER */
+.divider{text-align:center;color:var(--muted);font-size:12px;margin:16px 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:calc(50% - 60px);height:1px;background:var(--border)}
+.divider::before{left:0}.divider::after{right:0}
+
+/* FORM */
+.form-section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.form-section-title{font-weight:700;margin-bottom:14px;color:var(--text);display:flex;align-items:center;gap:6px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;width:100%}
+.form-group input::placeholder{color:var(--muted)}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--teal)}
+.form-group select option{background:var(--bg2)}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+/* TABLE */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.table-toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--card2)}
+.search-input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 12px;color:var(--text);font-size:13px;flex:1}
+.search-input:focus{outline:none;border-color:var(--teal)}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--bg3);padding:10px 12px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:hover{background:var(--card2)}
+tbody tr.selected{background:#0d2a3a;border-left:3px solid var(--teal)}
+tbody td{padding:9px 12px;font-size:13px;vertical-align:middle}
+.check-col{width:36px}
+.id-col{color:var(--muted);font-size:12px}
+.num-fact{font-size:11px;color:var(--teal);font-family:monospace}
+.proveedor-name{font-weight:600}
+.proveedor-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.monto{font-weight:700;color:var(--text)}
+.monto.pendiente{color:var(--teal)}
+.cae{font-size:11px;font-family:monospace;color:var(--muted)}
+.actions{display:flex;gap:5px;align-items:center}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-pendiente{background:#1e3a1e;color:#4ade80}
+.badge-observada{background:#3a1e1e;color:#f87171}
+.badge-revisada{background:#1e2e3a;color:#60a5fa}
+.badge-aprobacion{background:#2a1e3a;color:#c084fc}
+.badge-circuito{background:#1e3a2a;color:#34d399}
+.badge-pagada{background:#2a1a3a;color:#a78bfa}
+.badge-canje{background:#2a2a1a;color:#fbbf24}
+.badge-pago-parcial{background:#1a2a3a;color:#38bdf8}
+.badge-ocr-ok{background:#1a3a1a;color:#4ade80}
+.badge-ocr-warn{background:#3a2a1a;color:#fb923c}
+.badge-ocr-err{background:#3a1a1a;color:#f87171}
+
+/* TIPO BADGE */
+.tipo-a{color:#60a5fa;font-size:12px;font-weight:700}
+.tipo-b{color:#34d399;font-size:12px;font-weight:700}
+.tipo-c{color:#f9a8d4;font-size:12px;font-weight:700}
+
+/* ALERT BAR */
+.alert-bar{background:#1e2a1e;border:1px solid #2a4a2a;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:#4ade80;font-size:13px}
+.alert-bar.orange{background:#2a1e1a;border-color:#4a2e1a;color:#fb923c}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-weight:700;font-size:15px}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.close-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1}
+.close-btn:hover{color:var(--text)}
+
+/* PROVEEDOR CARDS */
+.prov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.prov-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.prov-name{font-weight:700;font-size:14px;margin-bottom:4px}
+.prov-cuit{font-size:11px;color:var(--muted);font-family:monospace}
+.prov-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.prov-tag{font-size:11px;background:var(--bg3);border-radius:4px;padding:2px 7px;color:var(--muted)}
+.prov-cbu{font-size:11px;color:var(--teal);margin-top:6px;font-family:monospace}
+
+/* CIRCUITO CARDS */
+.circ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:16px}
+.circ-card{background:var(--card);border:1px solid #1e4a2e;border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s}
+.circ-card:hover,.circ-card.sel{border-color:var(--teal)}
+.circ-card.sel{background:#0d2a3a}
+.circ-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.circ-proveedor{font-weight:700}
+.circ-monto{font-weight:700;color:var(--green);font-size:15px}
+.circ-meta{font-size:11px;color:var(--muted)}
+.circ-tipo{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-top:6px}
+.tipo-transferencia{background:#1a2a3a;color:#60a5fa}
+.tipo-cheque{background:#2a1a3a;color:#c084fc}
+.tipo-canje{background:#2a2a1a;color:#fbbf24}
+.tipo-mixto{background:#1a3a2a;color:#34d399}
+.tipo-sin{background:#2a2a2a;color:#94a3b8}
+
+/* AUDIT TABLE */
+.audit-row td:first-child{color:var(--muted);font-size:11px;font-family:monospace}
+
+/* DEMO TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--teal);border-radius:8px;padding:10px 16px;color:var(--text);font-size:13px;z-index:9999;animation:fadeIn .3s;max-width:320px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* VISOR LATERAL */
+.visor-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none}
+.visor-overlay.open{display:block}
+.visor{position:fixed;right:0;top:28px;bottom:0;width:400px;background:var(--bg2);border-left:1px solid var(--border);z-index:401;overflow-y:auto;transform:translateX(100%);transition:transform .3s}
+.visor.open{transform:none}
+.visor-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--card2);position:sticky;top:0;z-index:10}
+.visor-title{font-weight:700;font-size:14px}
+.visor-body{padding:16px}
+.visor-preview{background:var(--bg3);border-radius:8px;height:180px;display:flex;align-items:center;justify-content:center;color:var(--muted);margin-bottom:14px;font-size:13px;border:1px solid var(--border)}
+.visor-field{margin-bottom:10px}
+.visor-field-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+.visor-field-val{font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:6px 10px}
+.visor-warnings{background:#2a1a1a;border:1px solid #4a2a2a;border-radius:6px;padding:10px;margin-bottom:12px}
+.visor-warn-item{color:#fb923c;font-size:12px;margin-bottom:4px;display:flex;gap:6px}
+.visor-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.visor-status-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.visor-status-btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-size:12px;font-weight:600}
+
+/* RESPONSIVE */
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}.stats-row{flex-direction:column}.visor{width:100%}}
+</style>
+</head>
+<body>
+
+<div class="demo-banner">🎯 MODO DEMO — Datos de muestra | Sistema de Gestión de Facturas OCR</div>
+
+<nav>
+  <div class="logo">📄 Facturas OCR <span>Mi Empresa S.A.</span></div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('cargar')" id="t-cargar"><span class="tab-icon">📂</span>Cargar Facturas</button>
+    <button class="tab" onclick="showTab('pendientes')" id="t-pendientes"><span class="tab-icon">⏳</span>Pendientes de Revisión</button>
+    <button class="tab" onclick="showTab('porpagar')" id="t-porpagar"><span class="tab-icon">💳</span>Facturas por Pagar</button>
+    <button class="tab" onclick="showTab('circuito')" id="t-circuito"><span class="tab-icon">🔄</span>En circuito de pago</button>
+    <button class="tab" onclick="showTab('conciliadas')" id="t-conciliadas"><span class="tab-icon">✅</span>Facturas Conciliadas</button>
+    <button class="tab" onclick="showTab('proveedores')" id="t-proveedores"><span class="tab-icon">🏢</span>Proveedores</button>
+    <button class="tab" onclick="showTab('auditoria')" id="t-auditoria"><span class="tab-icon">📋</span>Auditoría</button>
+    <button class="tab" onclick="showTab('admin')" id="t-admin"><span class="tab-icon">⚙</span>Admin</button>
+  </div>
+  <div class="nav-right">
+    <span class="sync-dot"></span>
+    <span class="sync-info">Demo mode</span>
+    <button class="btn btn-ghost" style="font-size:11px">👤 Administrador</button>
+    <button class="btn btn-success" onclick="demoExcel()">⬇ Excel</button>
+  </div>
+</nav>
+
+<!-- ============ CARGAR FACTURAS ============ -->
+<div class="panel active" id="panel-cargar">
+  <div class="stats-row">
+    <div class="stat-card teal"><div class="stat-val">24</div><div class="stat-lbl">Total facturas</div></div>
+    <div class="stat-card green"><div class="stat-val">5</div><div class="stat-lbl">Por pagar</div></div>
+    <div class="stat-card orange"><div class="stat-val">4</div><div class="stat-lbl">Pendientes revisión</div></div>
+    <div class="stat-card red"><div class="stat-val">0</div><div class="stat-lbl">Con error OCR</div></div>
+    <div class="stat-card" style="background:var(--card);border-color:var(--border)">
+      <div class="stat-val" style="color:#e2e8f0">$ 7,34M</div><div class="stat-lbl">Importe pendiente</div></div>
+    <div class="stat-card purple"><div class="stat-val">$ 4,25M</div><div class="stat-lbl">Oct 2026 (9 fact.)</div></div>
+    <div class="stat-card" style="background:var(--card)"><div class="stat-val" style="color:#fb923c">$ 2,45M</div><div class="stat-lbl">Sep 2026 (8 fact.)</div></div>
+  </div>
+
+  <div class="upload-zone" onclick="demoOCR()">
+    <div class="upload-icon">📁</div>
+    <div class="upload-title">Arrastrá archivos aquí o hacé clic para seleccionar</div>
+    <div style="font-size:12px">PDF, JPG, PNG — también podés subir un <strong>.ZIP</strong> con múltiples facturas</div>
+  </div>
+  <div class="divider">o cargar manualmente</div>
+
+  <div class="form-section">
+    <div class="form-section-title">➕ Carga Manual de Factura</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select id="f-tipo"><option value="">— Seleccionar —</option><option>Factura A</option><option>Factura B</option><option>Factura C</option><option>Nota de Débito A</option><option>Nota de Crédito A</option></select>
+      </div>
+      <div class="form-group">
+        <label>Nro. Factura (XXXXXXYZZZZZZZZ) *</label>
+        <input type="text" placeholder="00001C00000302" id="f-nro">
+      </div>
+      <div class="form-group">
+        <label>CUIT (sin guiones) *</label>
+        <input type="text" placeholder="30500000001" id="f-cuit" value="30500000001">
+      </div>
+      <div class="form-group">
+        <label>Proveedor *</label>
+        <input type="text" placeholder="Razón Social" id="f-proveedor">
+      </div>
+      <div class="form-group">
+        <label>Fecha de Emisión *</label>
+        <input type="date" id="f-fecha">
+      </div>
+      <div class="form-group">
+        <label>Total *</label>
+        <input type="number" step="0.01" placeholder="0.00" id="f-total">
+      </div>
+      <div class="form-group">
+        <label>Neto Gravado</label>
+        <input type="number" step="0.01" placeholder="0.00" id="f-neto">
+      </div>
+      <div class="form-group">
+        <label>Tasa IVA</label>
+        <select id="f-iva"><option>— Sin IVA (Monotributo/Exento) —</option><option>10.5%</option><option>21%</option><option>27%</option></select>
+      </div>
+      <div class="form-group">
+        <label>CAE</label>
+        <input type="text" placeholder="14 dígitos" id="f-cae">
+      </div>
+      <div class="form-group">
+        <label>Vencimiento CAE</label>
+        <input type="date" id="f-vcae">
+      </div>
+      <div class="form-group">
+        <label>Condición IVA</label>
+        <select id="f-condiva"><option value="">— Seleccionar —</option><option>Responsable Inscripto</option><option>Monotributista</option><option>Exento</option></select>
+      </div>
+      <div class="form-group">
+        <label>Otros Impuestos</label>
+        <input type="number" step="0.01" placeholder="0.00" id="f-otros">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Concepto / Servicio</label>
+        <input type="text" placeholder="Ej: Pauta publicitaria, Servicio de limpieza, Honorarios..." id="f-concepto">
+      </div>
+      <div class="form-group">
+        <label>Período Contable</label>
+        <input type="month" id="f-periodo">
+      </div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <select id="f-cat"><option value="">— Seleccionar —</option><option>Producción</option><option>Administración</option><option>Servicios</option><option>Honorarios</option><option>Impuestos</option></select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="clearForm()">🗑 Limpiar</button>
+      <button class="btn btn-primary" onclick="saveManual()">💾 Guardar Factura</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PENDIENTES DE REVISION ============ -->
+<div class="panel" id="panel-pendientes">
+  <div class="stats-row">
+    <div class="stat-card orange"><div class="stat-val">4</div><div class="stat-lbl">Pendientes</div></div>
+    <div class="stat-card red"><div class="stat-val">0</div><div class="stat-lbl">Con error OCR</div></div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <input class="search-input" placeholder="Buscar proveedor, CUIT, número..." id="search-pend" oninput="filterTable('pend')">
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="check-col"><input type="checkbox"></th>
+          <th>ID</th><th>Tipo</th><th>Nro. Factura</th><th>CUIT</th><th>Proveedor</th><th>F. Emisión</th><th>Total</th><th>Estado OCR</th><th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-pend"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ FACTURAS POR PAGAR ============ -->
+<div class="panel" id="panel-porpagar">
+  <div class="stats-row" id="stats-porpagar"></div>
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <input class="search-input" placeholder="Buscar proveedor, CUIT, número..." id="search-pp" oninput="filterTable('pp')">
+      <button class="btn btn-outline" onclick="aprobarSeleccionados()">✅ Aprobar seleccionadas</button>
+      <button class="btn btn-ghost" onclick="openVisor(null)">👁 Visor</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="check-col"><input type="checkbox" onchange="toggleAll('pp',this)"></th>
+          <th>ID</th><th>Tipo</th><th>Nro. Factura</th><th>CUIT</th><th>Proveedor</th><th>F. Emisión ↑</th><th>Total factura</th><th>Pendiente</th><th>CAE</th><th>Vto. CAE</th><th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-pp"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ EN CIRCUITO DE PAGO ============ -->
+<div class="panel" id="panel-circuito">
+  <div class="alert-bar">🔄 <span id="circ-count-msg">3 factura(s) en circuito de pago</span></div>
+  <div id="circ-cards" class="circ-grid"></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="btn btn-success" onclick="demoExportarConciliar()">✅ Exportar y conciliar</button>
+    <button class="btn btn-primary" onclick="demoExcel()">📊 Exportar Excel</button>
+    <button class="btn btn-ghost" onclick="demoCircBajar()">↩ Bajar a Por Pagar</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="check-col"><input type="checkbox" onchange="toggleAll('circ',this)"></th>
+          <th>ID</th><th>Tipo</th><th>Nro. Factura</th><th>Proveedor</th><th>Total</th><th>Tipo Pago</th><th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-circ"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ FACTURAS CONCILIADAS ============ -->
+<div class="panel" id="panel-conciliadas">
+  <div class="stats-row">
+    <div class="stat-card purple"><div class="stat-val">15</div><div class="stat-lbl">Conciliadas</div></div>
+    <div class="stat-card" style="background:var(--card)"><div class="stat-val" style="color:var(--purple)">$ 12,74M</div><div class="stat-lbl">Total conciliado</div></div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <input class="search-input" placeholder="Buscar proveedor, CUIT, número...">
+      <button class="btn btn-ghost">📅 Filtrar por fecha</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Tipo</th><th>Nro. Factura</th><th>Proveedor</th><th>Total</th><th>Estado</th><th>F. Pago</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-conc"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ PROVEEDORES ============ -->
+<div class="panel" id="panel-proveedores">
+  <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+    <input class="search-input" placeholder="Buscar proveedor..." style="max-width:350px">
+    <button class="btn btn-primary" onclick="demoMsg('Alta de nuevo proveedor')">➕ Nuevo Proveedor</button>
+  </div>
+  <div class="prov-grid" id="prov-grid"></div>
+</div>
+
+<!-- ============ AUDITORIA ============ -->
+<div class="panel" id="panel-auditoria">
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <input class="search-input" placeholder="Buscar en auditoría...">
+      <button class="btn btn-ghost" onclick="demoMsg('Exportar log de auditoría')">⬇ Exportar</button>
+    </div>
+    <table>
+      <thead><tr><th>Fecha/Hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
+      <tbody id="tbody-audit" class="audit-row"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ ADMIN ============ -->
+<div class="panel" id="panel-admin">
+  <div class="form-section">
+    <div class="form-section-title">👥 Gestión de Usuarios</div>
+    <div class="prov-grid">
+      <div class="prov-card"><div class="prov-name">👤 Administrador</div><div class="prov-cuit">admin@miempresa.com.ar</div><div class="prov-meta"><span class="prov-tag">Rol: Admin</span><span class="prov-tag">Activo</span></div></div>
+      <div class="prov-card"><div class="prov-name">👤 Laura Méndez</div><div class="prov-cuit">lmendez@miempresa.com.ar</div><div class="prov-meta"><span class="prov-tag">Rol: Operador</span><span class="prov-tag">Activo</span></div></div>
+      <div class="prov-card"><div class="prov-name">👤 Ricardo Suárez</div><div class="prov-cuit">rsuarez@miempresa.com.ar</div><div class="prov-meta"><span class="prov-tag">Rol: Jefe Admin.</span><span class="prov-tag">Activo</span></div></div>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-primary" onclick="demoMsg('Alta de usuario')">➕ Nuevo Usuario</button></div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">📥 Importar Excel — Actualización masiva</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:10px">Importá un Excel para actualizar Período Contable, Categoría, Centro de Costo y Concepto de facturas existentes.</p>
+    <button class="btn btn-ghost" onclick="demoMsg('Seleccionar archivo Excel para importar')">📂 Seleccionar archivo Excel</button>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">🗄 Configuración del Sistema</div>
+    <div class="form-grid">
+      <div class="form-group"><label>CUIT de la empresa</label><input type="text" value="30-50000000-1" readonly></div>
+      <div class="form-group"><label>Razón Social</label><input type="text" value="Mi Empresa S.A." readonly></div>
+      <div class="form-group"><label>Google Sheet ID</label><input type="text" value="— modo demo —" readonly></div>
+      <div class="form-group"><label>Apps Script URL</label><input type="text" value="— modo demo —" readonly></div>
+    </div>
+  </div>
+</div>
+
+<!-- VISOR LATERAL -->
+<div class="visor-overlay" id="visor-overlay" onclick="closeVisor()"></div>
+<div class="visor" id="visor">
+  <div class="visor-header">
+    <div class="visor-title" id="visor-title">Factura #—</div>
+    <button class="close-btn" onclick="closeVisor()">✕</button>
+  </div>
+  <div class="visor-body">
+    <div class="visor-preview" id="visor-preview">📄 Vista previa del PDF</div>
+    <div class="visor-status-btns" id="visor-status-btns"></div>
+    <div class="visor-actions" id="visor-actions"></div>
+    <div id="visor-warnings"></div>
+    <div id="visor-fields"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+// ============ DATOS DE MUESTRA ============
+const DEMO_FACTURAS = [
+  // PENDIENTES (sin revisar)
+  {id:1,tipo:'Factura C',nro:'00001C00000051',cuit:'20111222333',proveedor:'LOPEZ ANA CAROLINA',concepto:'Servicios de consultoría — Octubre 2026',fecha:'15/10/2026',total:450000,neto:450000,iva:0,cae:'86350123456789',vcae:'24/10/2026',condiva:'Monotributista',estado:'PENDIENTE',ocr:'OK',periodo:'10/2026',categoria:'Producción',tipoPago:null},
+  {id:2,tipo:'Factura A',nro:'00001A00000187',cuit:'30222333444',proveedor:'SISTEMAS ALFA S.A.',concepto:'Servicios de administración financiera Oct 2026',fecha:'01/10/2026',total:121000,neto:100000,iva:21000,cae:'86280123456789',vcae:'10/10/2026',condiva:'Responsable Inscripto',estado:'PENDIENTE',ocr:'WARN',periodo:'10/2026',categoria:'Administración',tipoPago:null},
+  {id:3,tipo:'Factura C',nro:'00002C00000018',cuit:'27333444555',proveedor:'TORRES DANIELA INES',concepto:'Honorarios profesionales — Octubre 2026',fecha:'02/10/2026',total:1123200,neto:1123200,iva:0,cae:'86350112345678',vcae:'11/10/2026',condiva:'Monotributista',estado:'PENDIENTE',ocr:'OK',periodo:'10/2026',categoria:'Producción',tipoPago:null},
+  {id:4,tipo:'Factura C',nro:'00001C00000029',cuit:'27444555666',proveedor:'GOMEZ FLORENCIA BELEN',concepto:'Servicios profesionales — Octubre 2026',fecha:'03/10/2026',total:9000,neto:9000,iva:0,cae:'86351091934866',vcae:'12/10/2026',condiva:'Monotributista',estado:'OBSERVADA',ocr:'ERROR',periodo:'10/2026',categoria:'Administración',tipoPago:null},
+
+  // POR PAGAR
+  {id:5,tipo:'Factura A',nro:'00001A00004362',cuit:'30222333444',proveedor:'SISTEMAS ALFA S.A.',concepto:'Servicios de administración financiera Abril 2026',fecha:'14/05/2026',total:121000,neto:100000,iva:21000,cae:'86205556185426',vcae:'24/05/2026',condiva:'Responsable Inscripto',estado:'REVISADA',ocr:'OK',periodo:'05/2026',categoria:'Administración',tipoPago:'transferencia'},
+  {id:6,tipo:'Factura A',nro:'00003A00001322',cuit:'20234111222',proveedor:'MARTINEZ PABLO JAVIER',concepto:'Honorarios profesionales — Agosto 2026',fecha:'30/08/2026',total:847000,neto:700000,iva:147000,cae:'86350641725816',vcae:'09/09/2026',condiva:'Responsable Inscripto',estado:'PEND. APROBACIÓN',ocr:'OK',periodo:'08/2026',categoria:'Producción',tipoPago:'transferencia'},
+  {id:7,tipo:'Factura A',nro:'00001A00000539',cuit:'30333444555',proveedor:'SERVICIOS BETA S.A.S.',concepto:'Canje por Voucher — Agosto 2026',fecha:'05/08/2026',total:350900,neto:290000,iva:60900,cae:'86327206622024',vcae:'15/08/2026',condiva:'Responsable Inscripto',estado:'REVISADA',ocr:'OK',periodo:'08/2026',categoria:'Servicios',tipoPago:'canje'},
+  {id:8,tipo:'Factura C',nro:'00001C00000088',cuit:'20555666777',proveedor:'SANCHEZ ROBERTO HUGO',concepto:'Honorarios — Agosto 2026',fecha:'28/08/2026',total:180000,neto:180000,iva:0,cae:'86350389215128',vcae:'07/09/2026',condiva:'Monotributista',estado:'PEND. APROBACIÓN',ocr:'OK',periodo:'08/2026',categoria:'Honorarios',tipoPago:'transferencia'},
+  {id:9,tipo:'Factura A',nro:'00002A00013763',cuit:'30444555666',proveedor:'DISTRIBUIDORA OMEGA S.R.L.',concepto:'Recupero de gastos operativos — Julio 2026',fecha:'30/07/2026',total:18437075,neto:15237252,iva:3199823,cae:'86316208936706',vcae:'09/08/2026',condiva:'Responsable Inscripto',estado:'REVISADA',ocr:'OK',periodo:'07/2026',categoria:'Administración',tipoPago:'cheque'},
+
+  // EN CIRCUITO
+  {id:10,tipo:'Factura A',nro:'00003A00001323',cuit:'20234111222',proveedor:'MARTINEZ PABLO JAVIER',concepto:'Honorarios profesionales — Septiembre 2026',fecha:'30/09/2026',total:847000,neto:700000,iva:147000,cae:'86350641885515',vcae:'09/10/2026',condiva:'Responsable Inscripto',estado:'EN CIRCUITO DE PAGO',ocr:'OK',periodo:'09/2026',categoria:'Producción',tipoPago:'transferencia'},
+  {id:11,tipo:'Factura C',nro:'00001C00000032',cuit:'27666777888',proveedor:'DIAZ VERONICA RUTH',concepto:'Servicios prestados — Agosto 2026',fecha:'27/08/2026',total:1200000,neto:1200000,iva:0,cae:'86350161300448',vcae:'06/09/2026',condiva:'Monotributista',estado:'EN CIRCUITO DE PAGO',ocr:'OK',periodo:'08/2026',categoria:'Producción',tipoPago:'transferencia'},
+  {id:12,tipo:'Factura A',nro:'00003A00001847',cuit:'27555666777',proveedor:'RODRIGUEZ SILVIA ELENA',concepto:'Servicios de asesoría — Agosto 2026',fecha:'31/08/2026',total:158873,neto:131300,iva:27573,cae:'86350725942277',vcae:'10/09/2026',condiva:'Responsable Inscripto',estado:'EN CIRCUITO DE PAGO',ocr:'OK',periodo:'08/2026',categoria:'Administración',tipoPago:'cheque'},
+
+  // CONCILIADAS
+  {id:13,tipo:'Factura A',nro:'00001A00004360',cuit:'30222333444',proveedor:'SISTEMAS ALFA S.A.',concepto:'Serv. adm. financiera Feb 2026',fecha:'01/03/2026',total:121000,neto:100000,iva:21000,cae:'86205556185426',vcae:'10/03/2026',condiva:'Responsable Inscripto',estado:'PAGADA',ocr:'OK',periodo:'02/2026',categoria:'Administración',tipoPago:'transferencia',fechaPago:'15/03/2026'},
+  {id:14,tipo:'Factura C',nro:'00001C00000044',cuit:'20111222333',proveedor:'LOPEZ ANA CAROLINA',concepto:'Servicios de consultoría — Feb 2026',fecha:'05/03/2026',total:380000,neto:380000,iva:0,cae:'86301123456789',vcae:'14/03/2026',condiva:'Monotributista',estado:'PAGADA',ocr:'OK',periodo:'02/2026',categoria:'Producción',tipoPago:'transferencia',fechaPago:'20/03/2026'},
+  {id:15,tipo:'Factura A',nro:'00002A00011234',cuit:'30444555666',proveedor:'DISTRIBUIDORA OMEGA S.R.L.',concepto:'Recupero gastos operativos Feb 2026',fecha:'10/03/2026',total:15200000,neto:12561983,iva:2638017,cae:'86210123456789',vcae:'19/03/2026',condiva:'Responsable Inscripto',estado:'PAGADA',ocr:'OK',periodo:'02/2026',categoria:'Administración',tipoPago:'cheque',fechaPago:'28/03/2026'},
+  {id:16,tipo:'Factura C',nro:'00001C00000038',cuit:'27333444555',proveedor:'TORRES DANIELA INES',concepto:'Honorarios Marzo 2026',fecha:'01/04/2026',total:950000,neto:950000,iva:0,cae:'86311234567890',vcae:'10/04/2026',condiva:'Monotributista',estado:'PAGADA',ocr:'OK',periodo:'03/2026',categoria:'Producción',tipoPago:'transferencia',fechaPago:'08/04/2026'},
+  {id:17,tipo:'Factura A',nro:'00001A00000422',cuit:'30333444555',proveedor:'SERVICIOS BETA S.A.S.',concepto:'Canje Vouchers Q1 2026',fecha:'05/04/2026',total:280000,neto:231405,iva:48595,cae:'86321234567890',vcae:'14/04/2026',condiva:'Responsable Inscripto',estado:'CANJEADO',ocr:'OK',periodo:'03/2026',categoria:'Servicios',tipoPago:'canje',fechaPago:'10/04/2026'},
+];
+
+const DEMO_PROVEEDORES = [
+  {nombre:'SISTEMAS ALFA S.A.',cuit:'30222333444',condiva:'Responsable Inscripto',telefono:'011-4201500',mail:'pagos@sistemasalfa.com.ar',cbu:'0070001230004052090001',banco:'Banco Galicia'},
+  {nombre:'DISTRIBUIDORA OMEGA S.R.L.',cuit:'30444555666',condiva:'Responsable Inscripto',telefono:'011-4491000',mail:'finanzas@omega-dist.com.ar',cbu:'0170999220000014901002',banco:'Banco BBVA'},
+  {nombre:'MARTINEZ PABLO JAVIER',cuit:'20234111222',condiva:'Responsable Inscripto',telefono:'11-4568923',mail:'pablo.martinez@gmail.com',cbu:'0070001230003014901003',banco:'Banco Nación'},
+  {nombre:'SERVICIOS BETA S.A.S.',cuit:'30333444555',condiva:'Responsable Inscripto',telefono:'011-4301200',mail:'cuentas@serviciosbeta.com.ar',cbu:'',banco:''},
+  {nombre:'LOPEZ ANA CAROLINA',cuit:'20111222333',condiva:'Monotributista',telefono:'11-5234567',mail:'ana.lopez.cons@gmail.com',cbu:'0070001230000500000004',banco:'Banco Galicia'},
+  {nombre:'TORRES DANIELA INES',cuit:'27333444555',condiva:'Monotributista',telefono:'11-5891234',mail:'daniela.torres@gmail.com',cbu:'',banco:''},
+  {nombre:'SANCHEZ ROBERTO HUGO',cuit:'20555666777',condiva:'Monotributista',telefono:'11-4123456',mail:'roberto.sanchez@hotmail.com',cbu:'',banco:''},
+  {nombre:'DIAZ VERONICA RUTH',cuit:'27666777888',condiva:'Monotributista',telefono:'11-5678901',mail:'veronica.diaz@gmail.com',cbu:'0070001230001200000005',banco:'Banco Galicia'},
+  {nombre:'GOMEZ FLORENCIA BELEN',cuit:'27444555666',condiva:'Monotributista',telefono:'11-5012345',mail:'florencia.gomez@outlook.com',cbu:'',banco:''},
+  {nombre:'RODRIGUEZ SILVIA ELENA',cuit:'27555666777',condiva:'Responsable Inscripto',telefono:'11-4891234',mail:'silvia.rodriguez@empresa.com.ar',cbu:'0070001230004000000006',banco:'Banco Galicia'},
+];
+
+const DEMO_AUDIT = [
+  {fecha:'15/10/2026 00:02',usuario:'Administrador',accion:'SYNC',detalle:'Sincronización automática completada. 24 facturas.'},
+  {fecha:'14/10/2026 18:34',usuario:'Usuario Demo',accion:'ESTADO_CAMBIO',detalle:'Factura #10 → EN CIRCUITO DE PAGO'},
+  {fecha:'14/10/2026 18:33',usuario:'Usuario Demo',accion:'CONFIG_PAGO',detalle:'Factura #10: configurado transferencia CBU 007000...'},
+  {fecha:'14/10/2026 18:30',usuario:'Jefe Administración',accion:'APROBACION',detalle:'Factura #8 aprobada para circuito'},
+  {fecha:'14/10/2026 17:15',usuario:'Usuario Demo',accion:'REVISADA',detalle:'Factura #8 marcada como REVISADA'},
+  {fecha:'14/10/2026 16:40',usuario:'Usuario Demo',accion:'OCR_CARGA',detalle:'Factura #8 procesada por OCR — Estado: OK'},
+  {fecha:'13/10/2026 12:20',usuario:'Jefe Administración',accion:'CONCILIACION',detalle:'Excel exportado y 2 facturas conciliadas'},
+  {fecha:'10/10/2026 09:11',usuario:'Administrador',accion:'LOGIN',detalle:'Sesión iniciada desde 192.168.xxx.xxx'},
+];
+
+// ============ RENDER FUNCTIONS ============
+function fmtMoney(n){
+  if(Math.abs(n)>=1000000)return'$ '+(n/1000000).toFixed(2).replace('.',',')+'M';
+  return'$ '+n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function badgeEstado(e){
+  const map={
+    'PENDIENTE':'badge-pendiente','OBSERVADA':'badge-observada','REVISADA':'badge-revisada',
+    'PEND. APROBACIÓN':'badge-aprobacion','EN CIRCUITO DE PAGO':'badge-circuito',
+    'PAGADA':'badge-pagada','CANJEADO':'badge-canje','PAGO PARCIAL':'badge-pago-parcial'
+  };
+  return`<span class="badge ${map[e]||'badge-pendiente'}">${e}</span>`;
+}
+function badgeOCR(o){
+  if(o==='OK')return`<span class="badge badge-ocr-ok">✓ OCR</span>`;
+  if(o==='WARN')return`<span class="badge badge-ocr-warn">⚠ OCR</span>`;
+  return`<span class="badge badge-ocr-err">✗ OCR</span>`;
+}
+function tipoBadge(t){
+  if(t.includes(' A'))return`<span class="tipo-a">A</span>`;
+  if(t.includes(' B'))return`<span class="tipo-b">B</span>`;
+  return`<span class="tipo-c">C</span>`;
+}
+function tipoPagoTag(p){
+  const cls={'transferencia':'tipo-transferencia','cheque':'tipo-cheque','canje':'tipo-canje','mixto':'tipo-mixto'};
+  const lbl={'transferencia':'💳 Transferencia','cheque':'🧾 Cheque','canje':'🔄 Canje','mixto':'⚡ Mixto'};
+  return p?`<span class="circ-tipo ${cls[p]||'tipo-sin'}">${lbl[p]||'⚙ Sin config.'}</span>`:`<span class="circ-tipo tipo-sin">⚙ Sin config.</span>`;
+}
+
+function renderPendientes(){
+  const facts=DEMO_FACTURAS.filter(f=>['PENDIENTE','OBSERVADA'].includes(f.estado));
+  const tbody=document.getElementById('tbody-pend');
+  tbody.innerHTML=facts.map(f=>`<tr>
+    <td><input type="checkbox"></td>
+    <td class="id-col">#${f.id}</td>
+    <td>${tipoBadge(f.tipo)} ${f.tipo}</td>
+    <td><span class="num-fact">${f.nro}</span></td>
+    <td style="font-family:monospace;font-size:11px">${f.cuit}</td>
+    <td><div class="proveedor-name">${f.proveedor}</div><div class="proveedor-sub">${f.concepto}</div></td>
+    <td>${f.fecha}</td>
+    <td class="monto">${fmtMoney(f.total)}</td>
+    <td>${badgeOCR(f.ocr)}</td>
+    <td class="actions">
+      <button class="btn btn-primary" style="font-size:11px" onclick="openVisor(${f.id})">👁 Revisar</button>
+      <button class="btn btn-danger" style="font-size:11px;padding:5px 8px" onclick="demoMsg('Eliminar factura #${f.id}')">✕</button>
+    </td>
+  </tr>`).join('');
+}
+
+function renderPorPagar(){
+  const facts=DEMO_FACTURAS.filter(f=>['REVISADA','PEND. APROBACIÓN','OBSERVADA'].includes(f.estado));
+
+  // Stats cuadros superiores
+  const total=facts.reduce((s,f)=>s+f.total,0);
+  const byTipo={transferencia:0,cheque:0,canje:0,sinConfig:0};
+  facts.forEach(f=>{
+    if(f.tipoPago==='transferencia')byTipo.transferencia+=f.total;
+    else if(f.tipoPago==='cheque')byTipo.cheque+=f.total;
+    else if(f.tipoPago==='canje')byTipo.canje+=f.total;
+    else byTipo.sinConfig+=f.total;
+  });
+  const pendAprobacion=facts.filter(f=>f.estado==='PEND. APROBACIÓN').length;
+  const months={};
+  facts.forEach(f=>{if(f.periodo)months[f.periodo]=(months[f.periodo]||0)+f.total;});
+  const monthCards=Object.entries(months).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,3)
+    .map(([m,v])=>`<div class="stat-card" style="background:var(--card)"><div class="stat-val" style="color:#e2e8f0">${fmtMoney(v)}</div><div class="stat-lbl">${m} (${facts.filter(f=>f.periodo===m).length} fact.)</div></div>`).join('');
+
+  document.getElementById('stats-porpagar').innerHTML=`
+    <div class="stat-card teal"><div class="stat-val">${fmtMoney(total)}</div><div class="stat-lbl">Total a pagar</div></div>
+    <div class="stat-card orange"><div style="font-size:24px;font-weight:700;color:var(--orange)">${pendAprobacion}</div><div class="stat-lbl">Pend. Aprobación</div><div style="font-size:11px;color:var(--muted)">${fmtMoney(facts.filter(f=>f.estado==='PEND. APROBACIÓN').reduce((s,f)=>s+f.total,0))}</div></div>
+    ${monthCards}
+  `;
+
+  const tbody=document.getElementById('tbody-pp');
+  tbody.innerHTML=facts.map(f=>`<tr>
+    <td><input type="checkbox" class="pp-check" data-id="${f.id}"></td>
+    <td class="id-col">#${f.id}</td>
+    <td>${tipoBadge(f.tipo)}</td>
+    <td><span class="num-fact">${f.nro}</span></td>
+    <td style="font-family:monospace;font-size:11px">${f.cuit}</td>
+    <td><div class="proveedor-name">${f.proveedor}</div><div class="proveedor-sub">${f.concepto}</div></td>
+    <td>${f.fecha}</td>
+    <td class="monto">${fmtMoney(f.total)}</td>
+    <td class="monto pendiente">${fmtMoney(f.total)}<br><span class="badge badge-pendiente" style="font-size:9px">■ Total</span></td>
+    <td class="cae">${f.cae}</td>
+    <td>${f.vcae}</td>
+    <td class="actions">
+      ${f.estado==='PEND. APROBACIÓN'?`<button class="btn btn-success" style="font-size:11px" onclick="aprobarFactura(${f.id})">✅ Aprobar</button>`:''}
+      <button class="btn btn-ghost" style="font-size:11px;padding:5px 8px" title="Config. pago" onclick="openConfigPago(${f.id})">⚙</button>
+      <button class="btn btn-outline" style="font-size:11px;padding:5px 8px" title="Enviar a circuito" onclick="enviarCircuito(${f.id})">🔄</button>
+    </td>
+  </tr>`).join('');
+
+  if(pendAprobacion>0){
+    const alertEl=document.getElementById('alert-pp');
+    if(alertEl)alertEl.style.display='flex';
+  }
+}
+
+function renderCircuito(){
+  const facts=DEMO_FACTURAS.filter(f=>f.estado==='EN CIRCUITO DE PAGO');
+  document.getElementById('circ-count-msg').textContent=`${facts.length} factura(s) en circuito de pago — seleccioná para exportar`;
+
+  document.getElementById('circ-cards').innerHTML=facts.map(f=>`
+    <div class="circ-card" onclick="this.classList.toggle('sel')">
+      <div class="circ-card-header">
+        <div class="circ-proveedor">${f.proveedor}</div>
+        <div class="circ-monto">${fmtMoney(f.total)}</div>
+      </div>
+      <div class="circ-meta">#${f.id} · ${f.nro}</div>
+      <div class="circ-meta">${f.concepto}</div>
+      ${tipoPagoTag(f.tipoPago)}
+    </div>`).join('');
+
+  const tbody=document.getElementById('tbody-circ');
+  tbody.innerHTML=facts.map(f=>`<tr>
+    <td><input type="checkbox" class="circ-check" data-id="${f.id}"></td>
+    <td class="id-col">#${f.id}</td>
+    <td>${tipoBadge(f.tipo)}</td>
+    <td><span class="num-fact">${f.nro}</span></td>
+    <td><div class="proveedor-name">${f.proveedor}</div></td>
+    <td class="monto">${fmtMoney(f.total)}</td>
+    <td>${tipoPagoTag(f.tipoPago)}</td>
+    <td class="actions">
+      <button class="btn btn-ghost" style="font-size:11px;padding:5px 8px" onclick="demoMsg('Bajar #${f.id} a Por Pagar')">↩ Bajar</button>
+    </td>
+  </tr>`).join('');
+}
+
+function renderConciliadas(){
+  const facts=DEMO_FACTURAS.filter(f=>['PAGADA','CANJEADO','PAGO PARCIAL','CANJE PARCIAL'].includes(f.estado));
+  document.getElementById('tbody-conc').innerHTML=facts.map(f=>`<tr>
+    <td class="id-col">#${f.id}</td>
+    <td>${tipoBadge(f.tipo)}</td>
+    <td><span class="num-fact">${f.nro}</span></td>
+    <td><div class="proveedor-name">${f.proveedor}</div></td>
+    <td class="monto">${fmtMoney(f.total)}</td>
+    <td>${badgeEstado(f.estado)}</td>
+    <td>${f.fechaPago||'—'}</td>
+  </tr>`).join('');
+}
+
+function renderProveedores(){
+  document.getElementById('prov-grid').innerHTML=DEMO_PROVEEDORES.map(p=>`
+    <div class="prov-card">
+      <div class="prov-name">🏢 ${p.nombre}</div>
+      <div class="prov-cuit">CUIT: ${p.cuit}</div>
+      <div class="prov-meta">
+        <span class="prov-tag">${p.condiva}</span>
+        ${p.banco?`<span class="prov-tag">${p.banco}</span>`:''}
+        ${p.mail?`<span class="prov-tag">✉ ${p.mail}</span>`:''}
+      </div>
+      ${p.cbu?`<div class="prov-cbu">CBU: ${p.cbu}</div><div style="font-size:11px;color:var(--green);margin-top:2px">✓ CBU válido — ${p.banco}</div>`:'<div style="font-size:11px;color:var(--muted);margin-top:4px">Sin CBU registrado</div>'}
+      <div style="margin-top:8px;display:flex;gap:6px">
+        <button class="btn btn-ghost" style="font-size:11px" onclick="demoMsg('Editar proveedor: ${p.nombre}')">✏ Editar</button>
+        <button class="btn btn-danger" style="font-size:11px" onclick="demoMsg('Eliminar proveedor: ${p.nombre}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderAuditoria(){
+  document.getElementById('tbody-audit').innerHTML=DEMO_AUDIT.map(a=>`<tr>
+    <td>${a.fecha}</td>
+    <td>${a.usuario}</td>
+    <td><span class="badge badge-revisada" style="font-size:10px">${a.accion}</span></td>
+    <td style="font-size:12px">${a.detalle}</td>
+  </tr>`).join('');
+}
+
+// ============ INTERACCIONES ============
+function showTab(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  document.getElementById('t-'+name).classList.add('active');
+  if(name==='circuito')renderCircuito();
+}
+
+function demoMsg(msg){
+  const t=document.getElementById('toast');
+  t.textContent='🎯 DEMO: '+msg;
+  t.style.display='block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(()=>t.style.display='none',2800);
+}
+
+function demoOCR(){
+  demoMsg('OCR: procesando PDF de factura... (demo)');
+  setTimeout(()=>{
+    const f=DEMO_FACTURAS[0];
+    document.getElementById('f-nro').value=f.nro;
+    document.getElementById('f-cuit').value=f.cuit;
+    document.getElementById('f-proveedor').value=f.proveedor;
+    document.getElementById('f-total').value=f.total;
+    document.getElementById('f-concepto').value=f.concepto;
+    document.getElementById('f-cae').value=f.cae;
+    demoMsg('✓ OCR completado: datos extraídos. Revisá y guardá.');
+  },1200);
+}
+
+function saveManual(){
+  const nro=document.getElementById('f-nro').value;
+  if(!nro){demoMsg('Completá el número de factura');return;}
+  demoMsg('✓ Factura guardada correctamente en modo demo');
+  clearForm();
+}
+function clearForm(){
+  ['f-tipo','f-nro','f-proveedor','f-total','f-neto','f-cae','f-vcae','f-condiva','f-otros','f-concepto','f-cat'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value=el.tagName==='SELECT'?'':el.type==='number'?'0.00':'';
+  });
+}
+
+function aprobarFactura(id){
+  const f=DEMO_FACTURAS.find(x=>x.id===id);
+  if(f){f.estado='REVISADA';renderPorPagar();}
+  demoMsg(`✅ Factura #${id} aprobada`);
+}
+function aprobarSeleccionados(){
+  const sel=[...document.querySelectorAll('.pp-check:checked')].map(c=>parseInt(c.dataset.id));
+  if(!sel.length){demoMsg('Seleccioná al menos una factura');return;}
+  sel.forEach(id=>{const f=DEMO_FACTURAS.find(x=>x.id===id);if(f&&f.estado==='PEND. APROBACIÓN')f.estado='REVISADA';});
+  renderPorPagar();demoMsg(`✅ ${sel.length} factura(s) aprobadas`);
+}
+function enviarCircuito(id){
+  const f=DEMO_FACTURAS.find(x=>x.id===id);
+  if(f){f.estado='EN CIRCUITO DE PAGO';renderPorPagar();}
+  demoMsg(`🔄 Factura #${id} enviada a circuito de pago`);
+}
+function openConfigPago(id){
+  demoMsg(`⚙ Configurar pago para factura #${id} — (demo: modal config. pago)`);
+}
+function demoCircBajar(){
+  const sel=[...document.querySelectorAll('.circ-check:checked')].map(c=>parseInt(c.dataset.id));
+  if(!sel.length){demoMsg('Seleccioná facturas del circuito');return;}
+  sel.forEach(id=>{const f=DEMO_FACTURAS.find(x=>x.id===id);if(f)f.estado='PEND. APROBACIÓN';});
+  renderCircuito();demoMsg(`↩ ${sel.length} factura(s) devueltas a Por Pagar`);
+}
+function demoExportarConciliar(){
+  const sel=[...document.querySelectorAll('.circ-check:checked')].map(c=>parseInt(c.dataset.id));
+  const count=sel.length||DEMO_FACTURAS.filter(f=>f.estado==='EN CIRCUITO DE PAGO').length;
+  demoMsg(`✅ Excel + PDF generados. ${count} factura(s) marcadas como PAGADAS`);
+}
+function demoExcel(){demoMsg('📊 Excel generado con las facturas actuales (demo)');}
+
+function toggleAll(scope,cb){
+  document.querySelectorAll('.'+scope+'-check').forEach(c=>c.checked=cb.checked);
+}
+function filterTable(scope){}
+
+// VISOR
+let visorFact=null;
+function openVisor(id){
+  const f=id?DEMO_FACTURAS.find(x=>x.id===id):DEMO_FACTURAS[0];
+  if(!f)return;
+  visorFact=f;
+  document.getElementById('visor-title').textContent=`#${f.id} — ${f.nro}`;
+  document.getElementById('visor-preview').innerHTML=`<div style="text-align:center"><div style="font-size:32px">📄</div><div style="font-size:12px;margin-top:6px">${f.tipo}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${f.proveedor}</div></div>`;
+
+  const warns=[];
+  if(f.ocr==='WARN')warns.push('⚠ Suma de componentes no coincide con total');
+  if(f.ocr==='ERROR')warns.push('✕ No se detectó la fecha de emisión','✕ CAE no encontrado');
+  document.getElementById('visor-warnings').innerHTML=warns.length?`<div class="visor-warnings">${warns.map(w=>`<div class="visor-warn-item">• ${w}</div>`).join('')}</div>`:'';
+
+  document.getElementById('visor-fields').innerHTML=`
+    <div class="visor-field"><div class="visor-field-lbl">Estado</div><div>${badgeEstado(f.estado)} ${badgeOCR(f.ocr)}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Nro. Factura</div><div class="visor-field-val" style="font-family:monospace">${f.nro}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Tipo</div><div class="visor-field-val">${f.tipo}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">CUIT</div><div class="visor-field-val" style="font-family:monospace">${f.cuit}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Proveedor / Razón Social</div><div class="visor-field-val">${f.proveedor}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Condición IVA</div><div class="visor-field-val">${f.condiva}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Fecha de Emisión</div><div class="visor-field-val" style="${!f.fecha?'color:var(--orange)':''}">${f.fecha||'⚠ No detectada'}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Total</div><div class="visor-field-val" style="font-weight:700">${fmtMoney(f.total)}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Neto Gravado</div><div class="visor-field-val">${fmtMoney(f.neto)}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">IVA</div><div class="visor-field-val">${fmtMoney(f.iva)}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">CAE</div><div class="visor-field-val" style="font-family:monospace">${f.cae}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Vto. CAE</div><div class="visor-field-val">${f.vcae}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Concepto / Servicio</div><div class="visor-field-val">${f.concepto}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Período Contable</div><div class="visor-field-val">${f.periodo}</div></div>
+    <div class="visor-field"><div class="visor-field-lbl">Categoría</div><div class="visor-field-val">${f.categoria}</div></div>
+  `;
+
+  document.getElementById('visor-status-btns').innerHTML=`
+    <button class="visor-status-btn" style="background:#1e3a1e;color:#4ade80;border:1px solid #2a4a2a" onclick="cambiarEstado('REVISADA')">✅ Revisada</button>
+    <button class="visor-status-btn" style="background:#3a1e1e;color:#f87171;border:1px solid #4a2a2a" onclick="cambiarEstado('OBSERVADA')">⚠ Observada</button>
+    <button class="visor-status-btn" style="background:#1e2e3a;color:#60a5fa;border:1px solid #2a3a4a" onclick="cambiarEstado('PENDIENTE')">↩ Pendiente</button>
+  `;
+  document.getElementById('visor-actions').innerHTML=`
+    <button class="btn btn-primary" style="font-size:12px" onclick="demoMsg('💾 Cambios guardados')">💾 Guardar</button>
+    <button class="btn btn-ghost" style="font-size:12px" onclick="demoMsg('OCR: re-procesando...')">🔍 OCR</button>
+    <button class="btn btn-danger" style="font-size:12px" onclick="demoMsg('Eliminar factura #${f.id}')">🗑</button>
+  `;
+
+  document.getElementById('visor-overlay').classList.add('open');
+  document.getElementById('visor').classList.add('open');
+}
+function closeVisor(){
+  document.getElementById('visor-overlay').classList.remove('open');
+  document.getElementById('visor').classList.remove('open');
+}
+function cambiarEstado(estado){
+  if(visorFact){visorFact.estado=estado;}
+  demoMsg(`Estado cambiado a: ${estado}`);
+}
+
+// ============ INIT ============
+renderPendientes();
+renderPorPagar();
+renderConciliadas();
+renderProveedores();
+renderAuditoria();
+</script>
+</body>
+</html>
